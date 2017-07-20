@@ -342,7 +342,7 @@ head(tfit$genes$SYMBOL[de.common], n = 20)
 
 # Make a Venn diagram and write results to a file
 vennDiagram(dt[,1:2], circle.col = c("turquoise", "salmon"))
-write.fit(tfit, dt, file = "../results/results.txt")
+write.fit(tfit, dt, file = "results.txt")
 ```
 
 ### Examining individual DE genes from top to bottom
