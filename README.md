@@ -1,20 +1,24 @@
-# KARSANBIO-1127 - RNA-Seq Tutorial
+# Differential Expression with RNA-Seq - GrasPods Tutorial
 
-## Project Overview
+## Overview
 
-Project background goes here; also mention who worked on it.
+The goal of this tutorial is to help students gain familiarity with differential gene expression analysis using RNA-Seq data. To do this, we will work through a [recent tutorial article](https://f1000research.com/articles/5-1408/v2). 
 
-## Data Locations
+Please refer to the original article for the logic underlying each analytical step. What I've tried to do in this document is provide the code-chunks in a more simply executable format (an [RMarkdown document](http://rmarkdown.rstudio.com/)), and provide some more explanatory comments as to what each code chunk is doing. 
 
-Put locations of data and output, plus instructions for where they should be
-placed under `/data`, `/output` etc.
+In the lecture, I'll try to present both the logic and give an overview of what the code is doing.
 
-## Make targets
+## Getting Started
 
-- `report` - Formats the report
-- Add additional `make` targets here
+This tutorial assumes basic working knowledge of R and RStudio. All the analytical steps are documented in the main report document (`report/graspods_rna_seq_tutorial.rmd`).
 
-## JIRA
+To run and render the document:
 
-- [KARSANBIO-1127](http://gin.bcgsc.ca/jira/browse/KARSANBIO-1127) - This project's ticket
-- Add related tickets here
+- Clone this repository (`git clone $REPO`)
+- Download the necessary data files (`make download_data`)
+- Check that the necessary R packages are installed (see comments in the report file)
+- Render the report (`make report`)
+
+Questions? Email `rdocking` at `bcgsc.ca`, or raise an issue in this repository.
+
+
