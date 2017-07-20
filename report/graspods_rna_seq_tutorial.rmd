@@ -1,7 +1,8 @@
 ---
-title: 'KARSANBIO-1127 - RNA-Seq Tutorial'
-author: "rdocking_local"
+title: 'Differential Expression with RNA-Seq - GrasPods Tutorial'
+author: "Rod Docking"
 date: "`r format(Sys.time(), '%Y-%m-%d')`"
+bibliography: ../data/references.bib
 ---
 
 ```{r setup, include=FALSE, results="hide", warning=FALSE}
@@ -10,27 +11,25 @@ library(tidyverse)
 theme_set(theme_bw(base_size = 18))
 # Required for chunk options
 library(knitr)
-opts_chunk$set(fig.path='../plots/paper-',
-               cache.path='../cache/report-',
+opts_chunk$set(fig.path = '../plots/paper-',
+               cache.path = '../cache/report-',
                dev=c("png","pdf"),
-               fig.width=14,
-               fig.height=7,
-               dpi=300,
-               fig.show='hold',
-               fig.lp="fig:",
-               cache=TRUE,
-               par=TRUE,
-               echo=TRUE,
-               results="hide",
-               message=FALSE,
-               warning=FALSE)
+               fig.width = 14,
+               fig.height = 7,
+               dpi = 300,
+               fig.show = 'hold',
+               fig.lp = "fig:",
+               cache = TRUE,
+               par = TRUE,
+               echo = TRUE,
+               results = "hide",
+               message = FALSE,
+               warning = FALSE)
 ```
 
 ## Goals
 
-The goal of this analysis is to...
-
-- Briefly summarize the purpose and intended outcome of the analysis project
+The goal of this tutorial is to help students gain familiarity with differential gene expression analysis using RNA-Seq data. To do this, we will work through a recent tutorial article [@Law2016-iu]. 
 
 ## Setup
 
