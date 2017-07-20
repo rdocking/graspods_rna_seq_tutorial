@@ -13,7 +13,7 @@ theme_set(theme_bw(base_size = 18))
 library(knitr)
 opts_chunk$set(fig.path = '../plots/paper-',
                cache.path = '../cache/report-',
-               dev=c("png","pdf"),
+               dev = c("png","pdf"),
                fig.width = 14,
                fig.height = 7,
                dpi = 300,
@@ -33,6 +33,330 @@ The goal of this tutorial is to help students gain familiarity with differential
 
 ## Setup
 
-### Download Data Files
+### Load Additional R Packages
 
+```{r load_additional_packages}
+# If you don't have the packages installed, uncomment and run this:
+# source("https://bioconductor.org/biocLite.R")
+# biocLite(c("edgeR", "limma", "Mus.musculus", "Glimma", "gplots"))
 
+# Load Bioconductor libraries 
+library(limma) 
+library(edgeR)
+library(Mus.musculus)
+library(Glimma)
+library(gplots)
+
+# Load additional CRAN libraries
+library(RColorBrewer)
+library(stringr)
+```
+
+## Data packaging
+
+### Reading in count data
+
+First, we'll test reading in the raw read count files:
+
+```{r read_data_raw}
+# Note how we generate a list of pathed files by concatenating 
+#  the directory, filename, and extension
+data_dir <- "../data/"
+files <- c("GSM1545535_10_6_5_11.txt", 
+           "GSM1545536_9_6_5_11.txt", 
+           "GSM1545538_purep53.txt", 
+           "GSM1545539_JMS8-2.txt", 
+           "GSM1545540_JMS8-3.txt", 
+           "GSM1545541_JMS8-4.txt", 
+           "GSM1545542_JMS8-5.txt", 
+           "GSM1545544_JMS9-P7c.txt", 
+           "GSM1545545_JMS9-P8c.txt")
+pathed_files <- str_c(data_dir, files, ".gz")
+read.delim(pathed_files[1], nrow = 5)
+```
+
+Now, instead of reading the count files directly, we'll use the `edgeR` package to read things into a more analysis-ready format:
+
+```{r read_dge}
+x <- readDGE(pathed_files, columns = c(1,3))
+class(x)
+dim(x)
+```
+
+### Organising sample information
+
+Set up the experimental design data:
+
+```{r samplenames}
+samplenames <- substring(colnames(x), 12, nchar(colnames(x))) 
+samplenames
+
+colnames(x) <- samplenames
+group <- as.factor(c("LP", "ML", "Basal", "Basal", "ML", "LP", "Basal", "ML", "LP")) 
+x$samples$group <- group 
+lane <- as.factor(rep(c("L004","L006","L008"), c(3,4,2))) 
+x$samples$lane <- lane 
+x$samples
+```
+
+### Organising gene annotations
+
+Retrieve gene annotation information:
+
+```{r gene_annotations}
+geneid <- rownames(x) 
+genes <- select(Mus.musculus, keys = geneid, 
+                columns = c("SYMBOL", "TXCHROM"), 
+                keytype = "ENTREZID")
+dim(genes)
+head(genes)
+
+# Keep only the first occurrence of each gene
+genes <- genes[!duplicated(genes$ENTREZID),]
+
+x$genes <- genes
+x
+```
+
+## Data pre-processing
+
+### Transformations from the raw-scale
+
+Convert count data to CPM and log-CPM:
+
+```{r scale_counts}
+cpm <- cpm(x) 
+lcpm <- cpm(x, log = TRUE)
+```
+
+### Removing genes that are lowly expressed
+
+Check for genes with no count data, and remove other lowly-expressed genes:
+
+```{r filter_low_expression}
+table(rowSums(x$counts == 0) == 9)
+
+keep.exprs <- rowSums(cpm > 1) >= 3
+x <- x[keep.exprs, , keep.lib.sizes = FALSE]
+dim(x)
+```
+
+Plot count data:
+
+```{r plot_counts}
+nsamples <- ncol(x)
+col <- brewer.pal(nsamples, "Paired")
+par(mfrow = c(1,2))
+plot(density(lcpm[,1]), 
+     col = col[1], 
+     lwd = 2, 
+     ylim = c(0,0.21), las = 2,
+     main = "", xlab = "")
+title(main = "A. Raw data", xlab = "Log-cpm")
+abline(v = 0, lty = 3)
+for (i in 2:nsamples) {
+ den <- density(lcpm[,i])
+ lines(den$x, den$y, col = col[i], lwd = 2)
+}
+legend("topright", samplenames, text.col = col, bty = "n")
+lcpm <- cpm(x, log = TRUE)
+plot(density(lcpm[,1]), 
+     col = col[1], lwd = 2, 
+     ylim = c(0,0.21), las = 2,
+     main = "", xlab = "")
+title(main = "B. Filtered data", xlab = "Log-cpm")
+abline(v = 0, lty = 3)
+for (i in 2:nsamples) {
+   den <- density(lcpm[,i])
+   lines(den$x, den$y, col = col[i], lwd = 2)
+}
+legend("topright", samplenames, text.col = col, bty = "n")
+```
+
+### Normalising gene expression distributions
+
+Calculate normalization factors:
+
+```{r calcnormfactors}
+x <- calcNormFactors(x, method = "TMM")
+x$samples$norm.factors
+
+x2 <- x
+x2$samples$norm.factors <- 1
+x2$counts[,1] <- ceiling(x2$counts[,1]*0.05)
+x2$counts[,2] <- x2$counts[,2]*5
+```
+
+Plot the normalized data:
+
+```{r plot_normalization}
+par(mfrow = c(1,2))
+lcpm <- cpm(x2, log = TRUE)
+boxplot(lcpm, las = 2, col = col, main = "")
+title(main = "A. Example: Unnormalised data", ylab = "Log-cpm")
+x2 <- calcNormFactors(x2)
+x2$samples$norm.factors
+## [1] 0.0547 6.1306 1.2293 1.1705 1.2149 1.0562 1.1459 1.2613 1.1170
+
+lcpm <- cpm(x2, log = TRUE)
+boxplot(lcpm, las = 2, col = col, main = "")
+title(main = "B. Example: Normalised data", ylab = "Log-cpm")
+```
+
+### Unsupervised clustering of samples
+
+Plot unsupervised clustering of samples:
+
+```{r mds_plot}
+lcpm <- cpm(x, log = TRUE)
+par(mfrow = c(1,2))
+col.group <- group
+levels(col.group) <- brewer.pal(nlevels(col.group), "Set1")
+col.group <- as.character(col.group)
+col.lane <- lane
+levels(col.lane) <- brewer.pal(nlevels(col.lane), "Set2")
+col.lane <- as.character(col.lane)
+plotMDS(lcpm, labels = group, col = col.group)
+title(main = "A. Sample groups")
+
+plotMDS(lcpm, labels = lane, col = col.lane, dim = c(3,4))
+title(main = "B. Sequencing lanes")
+```
+
+```{r glimma_mds, eval=FALSE}
+# This chunk will not be executed when rendering - run it manually to launch 
+#  the interactive plot in a browser
+glMDSPlot(lcpm, labels = paste(group, lane, sep = "_"), groups = x$samples[,c(2,5)],
+          launch = TRUE)
+```
+
+## Differential expression analysis
+
+### Creating a design matrix and contrasts
+
+Set up the experimental design matrix and contrast matrix:
+
+```{r exp_design}
+# Design matrix
+design <- model.matrix(~0 + group + lane)
+colnames(design) <- gsub("group", "", colnames(design))
+design
+
+# Contrast matrix
+contr.matrix <- makeContrasts(
+   BasalvsLP = Basal - LP,
+   BasalvsML = Basal - ML, 
+   LPvsML = LP - ML,
+   levels = colnames(design))
+contr.matrix
+```
+
+### Removing heteroscedascity from count data
+
+Generate voom plots:
+
+```{r voom_plot}
+v <- voom(x, design, plot = TRUE)
+v
+```
+
+### Fitting linear models for comparisons of interest
+
+Fit linear models:
+
+```{r fitlm}
+vfit <- lmFit(v, design)
+vfit <- contrasts.fit(vfit, contrasts = contr.matrix)
+efit <- eBayes(vfit)
+plotSA(efit)
+```
+
+### Examining the number of DE genes
+
+Get counts of DE genes:
+
+```{r gene_counts}
+# Get all the results
+summary(decideTests(efit))
+
+# Add a filter for logFC
+tfit <- treat(vfit, lfc = 1)
+dt <- decideTests(tfit)
+summary(dt)
+
+# Find commonly DE genes
+de.common <- which(dt[,1] != 0 & dt[,2] != 0)
+length(de.common)
+
+head(tfit$genes$SYMBOL[de.common], n = 20)
+
+# Make a Venn diagram and write results to a file
+vennDiagram(dt[,1:2], circle.col = c("turquoise", "salmon"))
+write.fit(tfit, dt, file = "../results/results.txt")
+```
+
+### Examining individual DE genes from top to bottom
+
+Generate tables of DE genes for the two comparisons:
+
+```{r toptables}
+basal.vs.lp <- topTreat(tfit, coef = 1, n = Inf)
+basal.vs.ml <- topTreat(tfit, coef = 2, n = Inf)
+head(basal.vs.lp)
+```
+
+### Useful graphical representations of differential expression results
+
+```{r more_md_plots}
+plotMD(tfit, column = 1, status = dt[,1], 
+       main = colnames(tfit)[1], xlim = c(-8,13))
+```
+
+Make an interactive plot with Glimma:
+
+```{r glimma_md_plot, eval=FALSE}
+glMDPlot(tfit, coef = 1, status = dt, main = colnames(tfit)[1],
+         id.column = "ENTREZID", counts = x$counts, 
+         groups = group, launch = TRUE)
+```
+
+Create a heatmap of DE genes:
+
+```{r de_heatmap}
+basal.vs.lp.topgenes <- basal.vs.lp$ENTREZID[1:100]
+i <- which(v$genes$ENTREZID %in% basal.vs.lp.topgenes)
+mycol <- colorpanel(1000,"blue","white","red")
+heatmap.2(v$E[i,], scale = "row",
+   labRow = v$genes$SYMBOL[i], labCol = group,
+   col = mycol, trace = "none", density.info = "none", 
+   margin = c(8,6), lhei = c(2,10), dendrogram = "column")
+```
+
+## Gene set testing with camera
+
+Load gene sets and perform gene set testing:
+
+```{r run_camera}
+load("../data/mouse_c2_v5p1.rdata") 
+idx <- ids2indices(Mm.c2, identifiers = rownames(v)) 
+cam.BasalvsLP <- camera(v, idx, design, contrast = contr.matrix[,1]) 
+head(cam.BasalvsLP,5)
+
+cam.BasalvsML <- camera(v, idx, design, contrast = contr.matrix[,2]) 
+head(cam.BasalvsML,5)
+
+cam.LPvsML <- camera(v, idx, design, contrast = contr.matrix[,3]) 
+head(cam.LPvsML,5)
+
+barcodeplot(efit$t[,3], index = idx$LIM_MAMMARY_LUMINAL_MATURE_UP, 
+            index2 = idx$LIM_MAMMARY_LUMINAL_MATURE_DN, 
+            main = "LPvsML")
+```
+
+## Software Versions
+
+```{r session_info, results='markup'}
+sessionInfo()
+```
+
+## References

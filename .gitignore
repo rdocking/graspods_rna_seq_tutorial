@@ -5,3 +5,7 @@ report/KARSANBIO-1127_rna_seq_tutorial.html
 report/KARSANBIO-1127_rna_seq_tutorial.md
 report/graspods_rna_seq_tutorial.html
 report/graspods_rna_seq_tutorial.md
+.Rproj.user
+plots
+results.txt
+report/glimma-plots

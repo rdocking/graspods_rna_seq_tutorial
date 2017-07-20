@@ -6,11 +6,6 @@ html_document:
     toc: yes
     toc_depth: 4
     toc_float: true
-    code_folding: hide
-pdf_document:
-    toc: yes
-word_document:
-    fig_caption: yes
-    reference_docx: /home/rdocking/CCG_Karsan/analysisprojecttemplate/templates/cihr_template.docx
+    code_folding: show
 md_document:
     variant: markdown

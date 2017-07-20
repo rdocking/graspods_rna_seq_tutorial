@@ -16,7 +16,7 @@ SRC = $(wildcard $(REPORTDIR)/*.rmd)
 REPORTHTML = $(SRC:.rmd=.html)
 
 # Generate the report file
-report: $(REPORTHTML)
+report: download_data $(REPORTHTML)
 
 # Clean all the rendered output
 clean:
@@ -37,11 +37,14 @@ clean:
 ##============================================================================
 
 clean_data:
-	rm -rf data/G*
+	rm -rf data/G* data/mouse_c2_v5p1.rdata
 
 data/GSE63310_RAW.tar:
-	wget -O $@ ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE63nnn/GSE63310/suppl/GSE63310_RAW.tar
+	wget -O $@ ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE63nnn/GSE63310/suppl/GSE63310_RAW.tar;
+	cd data && tar xvf $(@F)
 
-download_data: data/GSE63310_RAW.tar
-	cd data && tar xvf $(<F)
+data/mouse_c2_v5p1.rdata:
+	wget -O $@ http://bioinf.wehi.edu.au/software/MSigDB/mouse_c2_v5p1.rdata
+
+download_data: data/GSE63310_RAW.tar data/mouse_c2_v5p1.rdata
 
