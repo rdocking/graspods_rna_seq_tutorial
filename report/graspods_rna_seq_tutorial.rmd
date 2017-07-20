@@ -2,7 +2,7 @@
 title: 'Differential Expression with RNA-Seq - GrasPods Tutorial'
 author: "Rod Docking"
 date: "`r format(Sys.time(), '%Y-%m-%d')`"
-bibliography: ../data/references.bib
+bibliography: references.bib
 ---
 
 ## Goals
