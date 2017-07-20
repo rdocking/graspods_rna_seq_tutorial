@@ -5,12 +5,33 @@ date: "`r format(Sys.time(), '%Y-%m-%d')`"
 bibliography: ../data/references.bib
 ---
 
+## Goals
+
+The goal of this tutorial is to help students gain familiarity with differential gene expression analysis using RNA-Seq data. To do this, we will work through a recent tutorial article [@Law2016-iu]. 
+
+Please refer to the original article for the logic underlying each analytical step. What I've tried to do in this document is provide the code-chunks in a more simply executable format (an [RMarkdown document](http://rmarkdown.rstudio.com/)), and provide some more explanatory comments as to what each code chunk is doing. 
+
+In the lecture, I'll try to present both the logic and give an overview of what the code is doing.
+
+## Setup
+
+### Load R Packages
+
+This first chunk loads R packages available from [CRAN](https://cran.r-project.org/):
+
 ```{r setup, include=FALSE, results="hide", warning=FALSE}
-# Load tidyverse up-front to set base_size for plots
+# If you don't have these libraries installed, run this line:
+# install.packages(c('tidyverse', 'knitr', 'RColorBrewer', 'stringr'))
+
+# Load additional CRAN libraries
 library(tidyverse)
+library(knitr)
+library(RColorBrewer)
+library(stringr)
+
+# Set some basic plotting and report rendering options
 theme_set(theme_bw(base_size = 18))
 # Required for chunk options
-library(knitr)
 opts_chunk$set(fig.path = '../plots/paper-',
                cache.path = '../cache/report-',
                dev = c("png","pdf"),
@@ -27,13 +48,7 @@ opts_chunk$set(fig.path = '../plots/paper-',
                warning = FALSE)
 ```
 
-## Goals
-
-The goal of this tutorial is to help students gain familiarity with differential gene expression analysis using RNA-Seq data. To do this, we will work through a recent tutorial article [@Law2016-iu]. 
-
-## Setup
-
-### Load Additional R Packages
+Next, we load additional packages from [BioConductor](https://www.bioconductor.org/). Note that BioConductor is a repository for many bioinformatics-focussed R packages, while CRAN is more general.
 
 ```{r load_additional_packages}
 # If you don't have the packages installed, uncomment and run this:
@@ -46,17 +61,13 @@ library(edgeR)
 library(Mus.musculus)
 library(Glimma)
 library(gplots)
-
-# Load additional CRAN libraries
-library(RColorBrewer)
-library(stringr)
 ```
 
 ## Data packaging
 
 ### Reading in count data
 
-First, we'll test reading in the raw read count files:
+First, we'll test reading in the raw read count files. Note - make sure to download these files first! See the Makefile for download rules (i.e., run `make download_data` from the parent directory containing the `Makefile`.
 
 ```{r read_data_raw}
 # Note how we generate a list of pathed files by concatenating 
@@ -72,10 +83,12 @@ files <- c("GSM1545535_10_6_5_11.txt",
            "GSM1545544_JMS9-P7c.txt", 
            "GSM1545545_JMS9-P8c.txt")
 pathed_files <- str_c(data_dir, files, ".gz")
+# This just demonstrates that file reading works by looking at the first
+#  five lines of the first file
 read.delim(pathed_files[1], nrow = 5)
 ```
 
-Now, instead of reading the count files directly, we'll use the `edgeR` package to read things into a more analysis-ready format:
+Now, instead of reading the count files directly, we'll use the `readDGE` function from the `edgeR` package to read things into a more analysis-ready format:
 
 ```{r read_dge}
 x <- readDGE(pathed_files, columns = c(1,3))
@@ -83,49 +96,78 @@ class(x)
 dim(x)
 ```
 
+Note that the object containing our count data is not a simple data frame - it's a `DGEList` object. We can still _access_ the sample table and count table by accessing the object (using `x$samples` and `x$counts`).
+
 ### Organising sample information
 
 Set up the experimental design data:
 
 ```{r samplenames}
+# Extract sample names from the names of the input text files
 samplenames <- substring(colnames(x), 12, nchar(colnames(x))) 
 samplenames
 
+# Set up the column names, and manually label the experimental groups and lanes
 colnames(x) <- samplenames
 group <- as.factor(c("LP", "ML", "Basal", "Basal", "ML", "LP", "Basal", "ML", "LP")) 
 x$samples$group <- group 
 lane <- as.factor(rep(c("L004","L006","L008"), c(3,4,2))) 
 x$samples$lane <- lane 
+
+# Now we can re-inspect the sample data that we've re-labelled
 x$samples
+```
+
+Make an extra table of the sample data:
+
+```{r samples_table, results='asis'}
+sample_data.df <- as.data.frame(x$samples)
+kable(sample_data.df, caption = "Experimental Design Table")
 ```
 
 ### Organising gene annotations
 
-Retrieve gene annotation information:
+Retrieve gene annotation information. This uses the BioConductor package [Mus.musculus](https://www.bioconductor.org/packages/release/data/annotation/html/Mus.musculus.html), which contains many useful mouse gene identifiers.
 
 ```{r gene_annotations}
+# Extract the gene IDs from the DGElist object
 geneid <- rownames(x) 
+# Use the BioConductor package to retrieve more useful gene names
 genes <- select(Mus.musculus, keys = geneid, 
                 columns = c("SYMBOL", "TXCHROM"), 
                 keytype = "ENTREZID")
+
+# Check the dimensions of the returned object, and inspect the first few rows
 dim(genes)
 head(genes)
 
-# Keep only the first occurrence of each gene
+# Since there are multiple identifiers for some genes, 
+#  keep only the first occurrence of each gene
 genes <- genes[!duplicated(genes$ENTREZID),]
 
+# Now add the gene names back to our DGEList object
 x$genes <- genes
 x
 ```
+
+What we've done so far:
+
+- Read in all the raw count data
+- Set up the experimental design details
+- Retrieved human-readable gene names
 
 ## Data pre-processing
 
 ### Transformations from the raw-scale
 
-Convert count data to CPM and log-CPM:
+Convert count data to CPM and log-CPM to normalize the counts between different libraries.
 
 ```{r scale_counts}
+# Check the documentation for this function to see what's going on with ?cpm
+
+# This generates a matrix of expression values in CPM
 cpm <- cpm(x) 
+# ... and a matrix of CPM for log2+0.25 counts
 lcpm <- cpm(x, log = TRUE)
 ```
 
@@ -134,14 +176,19 @@ lcpm <- cpm(x, log = TRUE)
 Check for genes with no count data, and remove other lowly-expressed genes:
 
 ```{r filter_low_expression}
+# Read as: "Make me a table by counting how many rows there are where the sum of the row for all 9 samples is 0"
 table(rowSums(x$counts == 0) == 9)
 
+# Read as: "Find me all the rows (i.e. genes) where the CPM is >1 in at least 3 of the 9 samples"
 keep.exprs <- rowSums(cpm > 1) >= 3
+dim(x)
 x <- x[keep.exprs, , keep.lib.sizes = FALSE]
 dim(x)
 ```
 
-Plot count data:
+Note that we've now subset down from our original list of 27,179 genes to a more manageable 14,165.
+
+Plot count data for raw and unfiltered data sets. Note that the plots below use the 'base R' plotting system, which can be a bit difficult to read. Essentially, we're plotting two density distributions.
 
 ```{r plot_counts}
 nsamples <- ncol(x)
@@ -175,12 +222,14 @@ legend("topright", samplenames, text.col = col, bty = "n")
 
 ### Normalising gene expression distributions
 
-Calculate normalization factors:
+Calculate normalization factors. This scales the expression values for each sample using the 'trimmed mean of M-values' (TMM) method:
 
 ```{r calcnormfactors}
+# Calculate and then display the library normalization factors
 x <- calcNormFactors(x, method = "TMM")
 x$samples$norm.factors
 
+# Make a copy so we can compare the normalized and un-normalized data
 x2 <- x
 x2$samples$norm.factors <- 1
 x2$counts[,1] <- ceiling(x2$counts[,1]*0.05)
@@ -226,7 +275,8 @@ title(main = "B. Sequencing lanes")
 ```{r glimma_mds, eval=FALSE}
 # This chunk will not be executed when rendering - run it manually to launch 
 #  the interactive plot in a browser
-glMDSPlot(lcpm, labels = paste(group, lane, sep = "_"), groups = x$samples[,c(2,5)],
+glMDSPlot(lcpm, labels = paste(group, lane, sep = "_"), 
+          groups = x$samples[,c(2,5)],
           launch = TRUE)
 ```
 
@@ -237,12 +287,12 @@ glMDSPlot(lcpm, labels = paste(group, lane, sep = "_"), groups = x$samples[,c(2,
 Set up the experimental design matrix and contrast matrix:
 
 ```{r exp_design}
-# Design matrix
+# Design matrix - this specifies the formula for the linear model used
 design <- model.matrix(~0 + group + lane)
 colnames(design) <- gsub("group", "", colnames(design))
 design
 
-# Contrast matrix
+# Contrast matrix - this sets up the comparisons we want to make
 contr.matrix <- makeContrasts(
    BasalvsLP = Basal - LP,
    BasalvsML = Basal - ML, 
@@ -253,7 +303,7 @@ contr.matrix
 
 ### Removing heteroscedascity from count data
 
-Generate voom plots:
+Generate voom plots to remove heteroscedascity from the data:
 
 ```{r voom_plot}
 v <- voom(x, design, plot = TRUE)
@@ -262,7 +312,7 @@ v
 
 ### Fitting linear models for comparisons of interest
 
-Fit linear models:
+Now that we've normalized and filtered our data, we can fit linear models. Review the original article and earlier voom/limma papers for more details here.
 
 ```{r fitlm}
 vfit <- lmFit(v, design)
