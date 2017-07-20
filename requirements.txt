@@ -1,0 +1,9 @@
+flake8 # Install a module by name
+# Install from stash
+# git+ssh://git@svn.bcgsc.ca:7999/ccg/clingen-shortreadquality.git
+# Install editable from stash
+# -e git+ssh://git@svn.bcgsc.ca:7999/ccg/clingen-shortreadquality.git#egg=clingen-shortreadquality
+# Install from local working copy
+# /home/rdocking/CCG_Panel_Pipeline/aml_project_orm/
+# Install editable from local working copy
+# -e /home/rdocking/AML_Clinical_Pipeline/AML_Project_Workflows/
