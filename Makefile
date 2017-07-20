@@ -40,6 +40,7 @@ clean_data:
 	rm -rf data/G* data/mouse_c2_v5p1.rdata
 
 data/GSE63310_RAW.tar:
+	mkdir data;
 	wget -O $@ ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE63nnn/GSE63310/suppl/GSE63310_RAW.tar;
 	cd data && tar xvf $(@F)
 
