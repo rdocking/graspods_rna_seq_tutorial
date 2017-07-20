@@ -33,11 +33,15 @@ clean:
 	Rscript -e 'rmarkdown::render("$<", "md_document", "$(notdir $@)")'
 
 ##============================================================================
-## Targets to deploy the Python virtualenv
+## Targets to download input files
 ##============================================================================
 
-env:
-	virtualenv --prompt '(KARSANBIO-1127)' env; \
-	source env/bin/activate; \
-	pip install -r requirements.txt --no-index \
-	--find-links /projects/clingenetics/software/python-wheels/
+clean_data:
+	rm -rf data/G*
+
+data/GSE63310_RAW.tar:
+	wget -O $@ ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE63nnn/GSE63310/suppl/GSE63310_RAW.tar
+
+download_data: data/GSE63310_RAW.tar
+	cd data && tar xvf $(<F)
+

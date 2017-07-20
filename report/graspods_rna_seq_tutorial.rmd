@@ -33,50 +33,6 @@ The goal of this tutorial is to help students gain familiarity with differential
 
 ## Setup
 
-### 2017-07-20
+### Download Data Files
 
-#### Setup Sub-task 1
 
-- Describe any initial setup tasks like:
-	- Finding previous analysis tickets or reports
-	- Setting up DB connections
-	- Determining appropriate libraries to use for the analysis
-
-#### Setup Sub-task 2
-
-## Analysis Task
-
-### 2017-07-20
-
-#### Analysis Sub-task 1
-
-- Describe analysis tasks in enough detail so that your future self can
-understand both _how_ and _why_ a particular analysis was conducted
-- Chunks of code necessary for the analysis can be included directly:
-
-```{r example_r_chunk, echo=TRUE, include=TRUE, results="markup", warning=FALSE}
-# An example chunk of R code
-# Chunk options reference: http://yihui.name/knitr/options/
-rnorm(10)
-```
-
-```{bash example_bash_chunk, echo=TRUE, include=TRUE, results="markup", warning=FALSE}
-# An example chunk of bash code
-# Note that it's usually _not_ a good idea to do this, but it's possible
-echo 'I am the egg man, they are the egg men.'
-```
-
-```{python example_python_chunk, echo=TRUE, include=TRUE, results="markup", warning=FALSE}
-# An example chunk of python code
-# Note that it's usually _not_ a good idea to do this, but it's possible
-print 'I am the walrus, goo goo g\'joob g\'goo goo g\'joob.'
-```
-
-#### Analysis Sub-task 2
-
-## Conclusion
-
-- Summarize the analysis:
-	- Was the goal described above achieved?
-	- What was the resolution of the issue being analyzed?
-	- What's next? More analysis (if so, where?)
