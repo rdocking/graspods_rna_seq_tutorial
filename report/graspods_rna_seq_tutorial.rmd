@@ -67,12 +67,19 @@ library(gplots)
 
 ### Reading in count data
 
-First, we'll test reading in the raw read count files. Note - make sure to download these files first! See the Makefile for download rules (i.e., run `make download_data` from the parent directory containing the `Makefile`.
+First, we'll download and then test reading in the raw read count files.
+
+```{r download_data}
+# This code will download and extract the raw count data
+url <- "https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE63310&format=file"
+utils::download.file(url, destfile = "GSE63310_RAW.tar", mode = "wb") 
+utils::untar("GSE63310_RAW.tar", exdir = ".")
+```
+
 
 ```{r read_data_raw}
 # Note how we generate a list of pathed files by concatenating 
 #  the directory, filename, and extension
-data_dir <- "../data/"
 files <- c("GSM1545535_10_6_5_11.txt", 
            "GSM1545536_9_6_5_11.txt", 
            "GSM1545538_purep53.txt", 
@@ -82,16 +89,16 @@ files <- c("GSM1545535_10_6_5_11.txt",
            "GSM1545542_JMS8-5.txt", 
            "GSM1545544_JMS9-P7c.txt", 
            "GSM1545545_JMS9-P8c.txt")
-pathed_files <- str_c(data_dir, files, ".gz")
+compressed_files <- str_c(files, ".gz")
 # This just demonstrates that file reading works by looking at the first
 #  five lines of the first file
-read.delim(pathed_files[1], nrow = 5)
+read.delim(compressed_files[1], nrow = 5)
 ```
 
 Now, instead of reading the count files directly, we'll use the `readDGE` function from the `edgeR` package to read things into a more analysis-ready format:
 
 ```{r read_dge}
-x <- readDGE(pathed_files, columns = c(1,3))
+x <- readDGE(compressed_files, columns = c(1,3))
 class(x)
 dim(x)
 ```
@@ -104,7 +111,7 @@ Set up the experimental design data:
 
 ```{r samplenames}
 # Extract sample names from the names of the input text files
-samplenames <- substring(colnames(x), 20, nchar(colnames(x)) - 4) 
+samplenames <- substring(colnames(x), 12, nchar(colnames(x)) - 4) 
 samplenames
 
 # Set up the column names, and manually label the experimental groups and lanes
@@ -396,7 +403,9 @@ heatmap.2(v$E[i,], scale = "row",
 Load gene sets and perform gene set testing:
 
 ```{r run_camera}
-load("../data/mouse_c2_v5p1.rdata") 
+# Load mouse gene sets
+load(url("http://bioinf.wehi.edu.au/software/MSigDB/mouse_c2_v5p1.rdata")) 
+# Generate identifiers
 idx <- ids2indices(Mm.c2, identifiers = rownames(v)) 
 cam.BasalvsLP <- camera(v, idx, design, contrast = contr.matrix[,1]) 
 head(cam.BasalvsLP,5)

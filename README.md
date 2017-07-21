@@ -15,10 +15,10 @@ This tutorial assumes basic working knowledge of R and RStudio. All the analytic
 To run and render the document:
 
 - Clone this repository (`git clone https://github.com/rdocking/graspods_rna_seq_tutorial.git`)
-- Change into the repository directory (`cd graspods_rna_seq_tutorial`)
-- Download the necessary data files (`make download_data`)
+- Open the RStudio project file (`report/graspods_rna_seq_tutorial.Rproj`)
+- From within RStudio, open the report file (`report/graspods_rna_seq_tutorial.rmd`)
 - Check that the necessary R packages are installed (see comments in the report file)
-- Render the report (`make report`)
+- Render the report (use the 'knit' button from within RStudio, or `make` from a Mac/Linux command line)
 
 Questions? Email `rdocking` at `bcgsc.ca`, or raise an issue in this repository.
 
