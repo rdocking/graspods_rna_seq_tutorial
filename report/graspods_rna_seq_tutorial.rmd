@@ -9,7 +9,7 @@ bibliography: references.bib
 
 The goal of this tutorial is to help students gain familiarity with differential gene expression analysis using RNA-Seq data. To do this, we will work through a recent tutorial article [@Law2016-iu]. 
 
-Please refer to the original article for the logic underlying each analytical step. What I've tried to do in this document is provide the code-chunks in a more simply executable format (an [RMarkdown document](http://rmarkdown.rstudio.com/)), and provide some more explanatory comments as to what each code chunk is doing. 
+Please refer to the original article for the logic underlying each analytical step. What I've tried to do in this document is provide the code-chunks in a more simply executable format (an [RMarkdown document](http://rmarkdown.rstudio.com/)), and provide some more explanatory comments as to what each code chunk is doing. Note that the original author's code is available as a [BioConductor Workflow](http://bioconductor.org/help/workflows/RNAseq123/).
 
 In the lecture, I'll try to present both the logic and give an overview of what the code is doing.
 
@@ -121,8 +121,14 @@ x$samples
 Make an extra table of the sample data:
 
 ```{r samples_table, results='asis'}
+# Note that this chunk uses 'tidyverse' functions and syntax
+# Read as "Make a data frame, add the sample name, remove the file name, then sort by group and library size"
 sample_data.df <- as.data.frame(x$samples)
-kable(sample_data.df, caption = "Experimental Design Table")
+sample_data.df %>%
+  rownames_to_column("sample") %>%
+  dplyr::select(-files) %>%
+  arrange(group, lib.size) %>%
+  kable(caption = "Experimental Design Table")
 ```
 
 ### Organising gene annotations
@@ -168,6 +174,7 @@ Convert count data to CPM and log-CPM to normalize the counts between different 
 # This generates a matrix of expression values in CPM
 cpm <- cpm(x) 
 # ... and a matrix of CPM for log2+0.25 counts
+# Note that we add 0.25 to the raw values to avoid taking the log of 0
 lcpm <- cpm(x, log = TRUE)
 ```
 
@@ -229,14 +236,16 @@ Calculate normalization factors. This scales the expression values for each samp
 x <- calcNormFactors(x, method = "TMM")
 x$samples$norm.factors
 
-# Make a copy so we can compare the normalized and un-normalized data
+# Make a copy so we can show a better comparison
+# This scales the first sample to 5%, and the second sample to 500%, so the 
+#  effect of the normalization is more apparent
 x2 <- x
 x2$samples$norm.factors <- 1
 x2$counts[,1] <- ceiling(x2$counts[,1]*0.05)
 x2$counts[,2] <- x2$counts[,2]*5
 ```
 
-Plot the normalized data:
+Plot the effect of normalization for the tweaked data set:
 
 ```{r plot_normalization}
 par(mfrow = c(1,2))
@@ -254,7 +263,7 @@ title(main = "B. Example: Normalised data", ylab = "Log-cpm")
 
 ### Unsupervised clustering of samples
 
-Plot unsupervised clustering of samples:
+Plot unsupervised clustering of samples - note that the first two dimensions are useful for explaining the sample grouping, while the 3rd and 4th dimensions seem to correlate with the sequencing lane.
 
 ```{r mds_plot}
 lcpm <- cpm(x, log = TRUE)
