@@ -104,7 +104,7 @@ Set up the experimental design data:
 
 ```{r samplenames}
 # Extract sample names from the names of the input text files
-samplenames <- substring(colnames(x), 12, nchar(colnames(x))) 
+samplenames <- substring(colnames(x), 20, nchar(colnames(x)) - 4) 
 samplenames
 
 # Set up the column names, and manually label the experimental groups and lanes
