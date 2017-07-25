@@ -43,7 +43,7 @@ opts_chunk$set(fig.path = '../plots/paper-',
                cache = TRUE,
                par = TRUE,
                echo = TRUE,
-               results = "hide",
+               results = "show",
                message = FALSE,
                warning = FALSE)
 ```
