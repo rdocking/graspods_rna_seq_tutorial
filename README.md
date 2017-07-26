@@ -22,4 +22,6 @@ To run and render the document:
 
 Questions? Email `rdocking` at `bcgsc.ca`, or raise an issue in this repository.
 
+## Rendered Versions
 
+Rendered versions of the slide presentation and R document are available in the `renders` folder.
